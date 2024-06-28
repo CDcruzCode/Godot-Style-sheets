@@ -1,3 +1,4 @@
+/* Godot style sheet! */
 Button {
 	background-color: rgba(0,0,0,0.4);
 	font-color: white;
@@ -6,12 +7,15 @@ Button {
 	font-size: 20px;
 }
 
+/** when the button
+is pressed
+*/
 Button:pressed {
-	background-color: red;
+	background-color: red;  /* red is nice */
 }
 
 Button:disabled {
-	background-color: purple;
+	background-color: purple; /* purple is good, i guess */
 	border-radius: 2px;
 	padding: 0px;
 }
