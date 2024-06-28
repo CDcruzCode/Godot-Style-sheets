@@ -1,0 +1,17 @@
+Button {
+	background-color: rgba(0,0,0,0.4);
+	font-color: white;
+	border-radius: 20px;
+	padding: 20px;
+	font-size: 20px;
+}
+
+Button:pressed {
+	background-color: red;
+}
+
+Button:disabled {
+	background-color: purple;
+	border-radius: 2px;
+	padding: 0px;
+}
