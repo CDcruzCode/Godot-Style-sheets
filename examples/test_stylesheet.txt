@@ -1,21 +1,22 @@
-/* Godot style sheet! */
-Button {
-	background-color: rgba(0,0,0,0.4);
-	font-color: white;
-	border-radius: 20px;
-	padding: 20px;
-	font-size: 20px;
+## Godot style sheet!
+default:
+	font: "res://examples/assets/fonts/roboto_mono/static/RobotoMono-Regular.ttf"
+
+Button:
+	bg_color: Color(0,0,0,0.4)
+	corner_radius: 20px
+	expand_margin: 20px
+	font_color: Color.WHITE
+	font_size: 20px
 }
 
-/** when the button
-is pressed
-*/
-Button:pressed {
-	background-color: red;  /* red is nice */
-}
+## multi-line
+## comment
+Button(pressed):
+	bg_color: Color.RED  # inline comment
 
-Button:disabled {
-	background-color: purple; /* purple is good, i guess */
-	border-radius: 2px;
-	padding: 0px;
-}
+Button(disabled):
+	# inline comment
+	bg_color: Color.PURPLE
+	corner_radius: 2px
+	expand_margin: 0
