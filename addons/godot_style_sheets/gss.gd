@@ -2,24 +2,25 @@ class_name GSS
 extends Node
 
 const DATA_TYPE_UNKNOWN: int = -1
-
 const DEFAULT_COLOR: Color = Color.WHITE
 
-const REGEX_COLOR_PATTERN: String = r"(?:Color\.([A-Z_]+))|(?:Color\(([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\))|(?:#?([A-Fa-f0-9]{3}(?:[A-Fa-f0-9]{3})?(?:[A-Fa-f0-9]{2})?))"
-const REGEX_COMMENT_PATTERN: String = r"(?m)(^[ \t]*#+(?![a-fA-F0-9]).*$|[ \t]*#+(?![a-fA-F0-9]).*$)"
-const REGEX_PIXEL_SIZE_PATTERN: String = r"^\d+(\.\d+)?px$"
-const REGEX_PROPERTY_PATTERN: String = r"(\w+)\s*:\s*(?:\"?([^\";\n]+)\"?;?|([^;\n]+))"
-const REGEX_THEME_TYPE_PATTERN: String = r"(\w+)(?:\(([^)]*)\))?"
-const REGEX_THEME_OVERRIDE_PATTERN: String = r"theme_override_([a-z_]+)/([a-z_]+)"
-const REGEX_VECTOR2_PATTERN: String = r"Vector2?i?\s*\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)"
+const REGEX_COLOR: String = r"(?:Color\.([A-Z_]+))|(?:Color\(([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\))|(?:#?([A-Fa-f0-9]{3}(?:[A-Fa-f0-9]{3})?(?:[A-Fa-f0-9]{2})?))"
+const REGEX_COMMENT: String = r"(?m)(^[ \t]*#+(?![a-fA-F0-9]).*$|[ \t]*#+(?![a-fA-F0-9]).*$)"
+const REGEX_PIXEL_SIZE: String = r"^\d+(\.\d+)?px$"
+const REGEX_GSS_PROPERTY: String = r"(\w+)\s*:\s*(?:\"?([^\";\n]+)\"?;?|([^;\n]+))"
+const REGEX_GSS_THEME_TYPE: String = r"(\w+)(?:\(([^)]*)\))?"
+const REGEX_THEME_OVERRIDE: String = r"theme_override_([a-z_]+)/([a-z_]+)"
+const REGEX_VECTOR2: String = r"Vector2?i?\s*\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)"
 
-static var color_pattern := RegEx.create_from_string(REGEX_COLOR_PATTERN)
-static var comment_pattern := RegEx.create_from_string(REGEX_COMMENT_PATTERN)
-static var pixel_size_pattern := RegEx.create_from_string(REGEX_PIXEL_SIZE_PATTERN)
-static var property_pattern := RegEx.create_from_string(REGEX_PROPERTY_PATTERN)
-static var theme_type_pattern := RegEx.create_from_string(REGEX_THEME_TYPE_PATTERN)
-static var theme_override_pattern := RegEx.create_from_string(REGEX_THEME_OVERRIDE_PATTERN)
-static var vector2_pattern := RegEx.create_from_string(REGEX_VECTOR2_PATTERN)
+static var regex: Dictionary = {
+	"color": RegEx.create_from_string(REGEX_COLOR),
+	"comment": RegEx.create_from_string(REGEX_COMMENT),
+	"gss_property": RegEx.create_from_string(REGEX_GSS_PROPERTY),
+	"gss_theme_type": RegEx.create_from_string(REGEX_GSS_THEME_TYPE),
+	"pixel_size": RegEx.create_from_string(REGEX_PIXEL_SIZE),
+	"theme_override": RegEx.create_from_string(REGEX_THEME_OVERRIDE),
+	"vector2": RegEx.create_from_string(REGEX_VECTOR2),
+}
 
 static var theme_property_types: Dictionary = {
 	"colors": Theme.DATA_TYPE_COLOR,
@@ -149,13 +150,13 @@ static func _get_theme_property_types(theme_type: String) -> Dictionary:
 		temp_instance.free()
 	
 	for prop: Dictionary in props:
-		var pattern_match: RegExMatch = theme_override_pattern.search(prop["name"])
+		var _match: RegExMatch = regex.theme_override.search(prop.name)
 		
-		if !pattern_match:
+		if !_match:
 			continue
 		
-		var key: String = pattern_match.get_string(2)
-		var value: int = theme_property_types.get(pattern_match.get_string(1), DATA_TYPE_UNKNOWN)
+		var key: String = _match.get_string(2)
+		var value: int = theme_property_types.get(_match.get_string(1), DATA_TYPE_UNKNOWN)
 		
 		result[key] = value
 	
@@ -185,27 +186,27 @@ static func _parse_bool(text: String) -> bool:
 
 
 static func _parse_color(text: String) -> Color:
-	var color_match: RegExMatch = color_pattern.search(text)
+	var _match: RegExMatch = regex.color.search(text)
 	
-	if !color_match:
+	if !_match:
 		push_warning("[GSS] Invalid Color value: %s" % text)
 		return DEFAULT_COLOR
 	
 	# Handle values like "Color.RED"
-	if color_match.get_string(1):
-		return Color.from_string(color_match.get_string(1), DEFAULT_COLOR)
+	if _match.get_string(1):
+		return Color.from_string(_match.get_string(1), DEFAULT_COLOR)
 	
 	# Handle values like "Color(0.2, 1.0, 0.7, 0.8)"
-	if color_match.get_string(2):
-		var r := float(color_match.get_string(2))
-		var g := float(color_match.get_string(3))
-		var b := float(color_match.get_string(4))
-		var a := float(color_match.get_string(5))
+	if _match.get_string(2):
+		var r := float(_match.get_string(2))
+		var g := float(_match.get_string(3))
+		var b := float(_match.get_string(4))
+		var a := float(_match.get_string(5))
 		return Color(r, g, b, a)
 	
 	# Handle values like "#55aaFF", "#55AAFF20", "55AAFF", or "#F2C"
-	if color_match.get_string(6):
-		return Color.from_string(color_match.get_string(6), DEFAULT_COLOR)
+	if _match.get_string(6):
+		return Color.from_string(_match.get_string(6), DEFAULT_COLOR)
 	
 	return DEFAULT_COLOR
 
@@ -245,28 +246,28 @@ static func _parse_gss(raw_text: String) -> Dictionary:
 
 
 static func _parse_gss_property(text: String, styles: Dictionary, theme_type: String) -> void:
-	var property_match: RegExMatch = property_pattern.search(text)
+	var _match: RegExMatch = regex.gss_property.search(text)
 	
-	if !property_match:
+	if !_match:
 		return
 	
-	var prop_key: String = property_match.strings[1]
-	var prop_value: String = property_match.strings[2]
+	var prop_key: String = _match.strings[1]
+	var prop_value: String = _match.strings[2]
 	
-	if pixel_size_pattern.search(prop_value):
+	if regex.pixel_size.search(prop_value):
 		prop_value = prop_value.trim_suffix("px")
 	
 	styles[theme_type][prop_key] = prop_value
 
 
 static func _parse_gss_theme_type(text: String, styles: Dictionary) -> String:
-	var theme_type_match: RegExMatch = theme_type_pattern.search(text)
+	var _match: RegExMatch = regex.gss_theme_type.search(text)
 	
-	if !theme_type_match:
+	if !_match:
 		return ""
 	
-	var theme_type: String = theme_type_match.strings[1]
-	var theme_type_style: String = theme_type_match.strings[2]
+	var theme_type: String = _match.strings[1]
+	var theme_type_style: String = _match.strings[2]
 	
 	if theme_type_style:
 		theme_type += ":%s" % theme_type_style
@@ -310,14 +311,14 @@ static func _parse_stylebox_property(prop: String, text: String, stylebox_props:
 
 
 static func _parse_vector2(text: String) -> Vector2:
-	var vector2_match: RegExMatch = vector2_pattern.search(text)
+	var _match: RegExMatch = regex.vector2.search(text)
 	
-	if !vector2_match:
+	if !_match:
 		push_warning("[GSS] Unable to parse Vector2 value from String: %s" % text)
 		return Vector2.ZERO
 	
-	var x: int = vector2_match.get_string(1) as int
-	var y: int = vector2_match.get_string(2) as int
+	var x: int = _match.get_string(1) as int
+	var y: int = _match.get_string(2) as int
 	
 	return Vector2(x, y)
 
@@ -365,4 +366,4 @@ static func _set_theme_property(
 
 
 static func _strip_comments(text: String) -> String:
-	return comment_pattern.sub(text, '', true)
+	return regex.comment.sub(text, '', true)

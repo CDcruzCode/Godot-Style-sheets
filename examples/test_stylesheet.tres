@@ -1,6 +1,6 @@
-[gd_resource type="Theme" load_steps=5 format=3]
+[gd_resource type="Theme" load_steps=5 format=3 uid="uid://daca54d8hcjsh"]
 
-[ext_resource type="FontFile" path="res://examples/assets/fonts/roboto_mono/static/RobotoMono-Regular.ttf" id="1_6yemy"]
+[ext_resource type="FontFile" uid="uid://crfeeuddpgih3" path="res://examples/assets/fonts/roboto_mono/static/RobotoMono-Regular.ttf" id="1_6yemy"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_i8rm5"]
 bg_color = Color(1, 0.133333, 0.8, 1)
