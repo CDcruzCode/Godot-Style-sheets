@@ -25,7 +25,7 @@ static var property_pattern := RegEx.create_from_string(REGEX_PROPERTY_PATTERN)
 static var theme_type_pattern := RegEx.create_from_string(REGEX_THEME_TYPE_PATTERN)
 static var vector2_pattern := RegEx.create_from_string(REGEX_VECTOR2_PATTERN)
 
-static var theme_type_variations: Array[String] = [
+static var theme_type_styles: Array[String] = [
 	"disabled",
 	"disabled_mirrored",
 	"focus",
@@ -57,20 +57,20 @@ static func file_to_theme(path: String) -> Theme:
 		var theme_type: String = key.get_slice(":", 0)
 		var theme_props: Dictionary = _get_theme_properties(theme, theme_type)
 		
-		# Theme type variation (e.g. "pressed", "hover") appears after the `:`, if present.
-		var variation: String = key.get_slice(":", 1) if ":" in key else "normal"
+		# Theme type styles (e.g. "pressed", "hover") appears after the `:`, if present.
+		var theme_type_style: String = key.get_slice(":", 1) if ":" in key else "normal"
 		
 		# Instantiate a new StyleBox that can have properties applied to it.
-		var style = StyleBoxFlat.new()  # TODO: Support other types of StyleBox.
-		var style_props: Dictionary = _get_stylebox_properties(StyleBoxFlat)
+		var stylebox = StyleBoxFlat.new()  # TODO: Support other types of StyleBox.
+		var stylebox_props: Dictionary = _get_stylebox_properties(StyleBoxFlat)
 		
 		# Loop through each property key/value pair in the current GSS property array.
 		for props: Dictionary in gss[key]:
 			for prop: String in props.keys():
 				var value: String = props[prop]
-				_set_theme_property(theme, theme_props, style, style_props, prop, theme_type, value)
+				_set_theme_property(theme, theme_props, stylebox, stylebox_props, prop, theme_type, value)
 		
-		theme.set_stylebox(variation, theme_type, style)
+		theme.set_stylebox(theme_type_style, theme_type, stylebox)
 	
 	return theme
 
@@ -243,10 +243,10 @@ static func _parse_gss_theme_type(text: String, styles: Dictionary) -> String:
 		return ""
 	
 	var theme_type: String = theme_type_match.strings[1]
-	var variation: String = theme_type_match.strings[2]
+	var theme_type_style: String = theme_type_match.strings[2]
 	
-	if variation and variation in theme_type_variations:
-		theme_type += ":%s" % variation
+	if theme_type_style and theme_type_style in theme_type_styles:
+		theme_type += ":%s" % theme_type_style
 	
 	if !styles.has(theme_type):
 		styles[theme_type] = []
@@ -258,12 +258,12 @@ static func _parse_icon(value: String) -> Texture2D:
 	return load(value)
 
 
-static func _parse_stylebox_property(prop: String, text: String, style_props: Dictionary) -> Variant:
-	if !style_props.has(prop):
+static func _parse_stylebox_property(prop: String, text: String, stylebox_props: Dictionary) -> Variant:
+	if !stylebox_props.has(prop):
 		push_warning("[GSS] Invalid StyleBox property: %s" % prop)
 		return text
 	
-	match style_props[prop]:
+	match stylebox_props[prop]:
 		TYPE_BOOL:
 			return _parse_bool(text)
 		
@@ -302,8 +302,8 @@ static func _parse_vector2(text: String) -> Vector2:
 static func _set_theme_property(
 	theme: Theme,
 	theme_props: Dictionary,
-	style: StyleBox,
-	style_props: Dictionary,
+	stylebox: StyleBox,
+	stylebox_props: Dictionary,
 	prop: String,
 	theme_type: String,
 	value: String,
@@ -327,14 +327,14 @@ static func _set_theme_property(
 			theme.set_icon(prop, theme_type, _parse_icon(value))
 		
 		DATA_TYPE_STYLEBOX:
-			style.set(prop, _parse_stylebox_property(prop, value, style_props))
+			stylebox.set(prop, _parse_stylebox_property(prop, value, stylebox_props))
 		
 		DATA_TYPE_UNKNOWN:
 			# If prop is not found in theme_props, determine if it is a group property like
 			# "border_width" that has multiple properties for top, bottom, left, and right.
 			# If so, call this function recursively for each property in the group.
 			for group_prop in _get_property_group(theme_props, prop):
-				_set_theme_property(theme, theme_props, style, style_props, group_prop, theme_type, value)
+				_set_theme_property(theme, theme_props, stylebox, stylebox_props, group_prop, theme_type, value)
 
 
 static func _strip_comments(text: String) -> String:
