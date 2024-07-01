@@ -1,11 +1,10 @@
 ## Godot style sheet!
-default:
-	font: "res://examples/assets/fonts/roboto_mono/static/RobotoMono-Regular.ttf"
 
 Button:
 	bg_color: Color(0,0,0,0.4)
 	corner_radius: 20px
 	expand_margin: 20px
+	font: "res://examples/assets/fonts/roboto_mono/static/RobotoMono-Regular.ttf"
 	font_color: Color.WHITE
 	font_size: 20px
 }
@@ -17,6 +16,6 @@ Button(pressed):
 
 Button(disabled):
 	# inline comment
-	bg_color: Color.PURPLE
+	bg_color: #F2C
 	corner_radius: 2px
 	expand_margin: 0
