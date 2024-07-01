@@ -50,6 +50,8 @@ static func file_to_theme(path: String) -> Theme:
 	
 	# Loop through each key in the GSS dictionary.
 	for key in gss.keys():
+		var props: Dictionary = gss[key]
+		
 		# The `key` will be something like "TextEdit", "Button:pressed", or "default".
 		var theme_type: String = key.get_slice(":", 0)
 		var theme_props: Dictionary = _get_theme_property_types(theme_type)
@@ -62,19 +64,19 @@ static func file_to_theme(path: String) -> Theme:
 			continue
 		
 		# Instantiate a new StyleBox that can have properties applied to it.
-		var stylebox = StyleBoxFlat.new()  # TODO: Support other types of StyleBox.
-		var stylebox_props: Dictionary = _get_stylebox_property_types(StyleBoxFlat)
+		var stylebox_type: String = props.get("stylebox", "StyleBoxFlat")
+		var stylebox = ClassDB.instantiate(stylebox_type)
+		var stylebox_props: Dictionary = _get_stylebox_property_types(stylebox_type)
 		
-		# Loop through each property key/value pair in the current GSS property array.
-		for props: Dictionary in gss[key]:
-			for prop: String in props.keys():
-				var value: String = props[prop]
-				var data_type: int = theme_props.get(prop, DATA_TYPE_UNKNOWN)
-				
-				if DATA_TYPE_UNKNOWN == data_type:
-					_set_stylebox_property(stylebox, stylebox_props, prop, theme_type, value)
-				else:
-					_set_theme_property(theme, data_type, prop, theme_type, value)
+		# Loop through each key/value pair in the current GSS property array.
+		for prop: String in props.keys():
+			var value: String = props[prop]
+			var data_type: int = theme_props.get(prop, DATA_TYPE_UNKNOWN)
+			
+			if DATA_TYPE_UNKNOWN == data_type:
+				_set_stylebox_property(stylebox, stylebox_props, prop, theme_type, value)
+			else:
+				_set_theme_property(theme, data_type, prop, theme_type, value)
 					
 		
 		theme.set_stylebox(style, theme_type, stylebox)
@@ -118,7 +120,18 @@ static func _get_class_property_types(cls: Variant, no_inheritance: bool = false
 	return result
 
 
-static func _get_stylebox_property_types(cls: Variant) -> Dictionary:
+static func _get_classes_with_theme_properties() -> Array:
+	var classes_with_theme: Array = []
+	var all_classes: PackedStringArray = ClassDB.get_class_list()
+	
+	for _class_name: String in all_classes:
+		if _has_theme_properties(_class_name):
+			classes_with_theme.append(_class_name)
+	
+	return classes_with_theme
+
+
+static func _get_stylebox_property_types(cls: String) -> Dictionary:
 	var no_inheritance: bool = true
 	var result: Dictionary = _get_class_property_types(cls, no_inheritance)
 	
@@ -129,11 +142,20 @@ static func _get_stylebox_property_types(cls: Variant) -> Dictionary:
 
 
 static func _get_theme_property_types(theme_type: String) -> Dictionary:
-	var props: Dictionary = _get_class_property_types(theme_type)
 	var result: Dictionary = {}
 	
-	for prop in props.keys():
-		var pattern_match: RegExMatch = theme_override_pattern.search(prop)
+	if !ClassDB.class_exists(theme_type):
+		push_warning("[GSS] Class does not exist: %s" % theme_type)
+		return result
+	
+	var temp_instance: Variant = ClassDB.instantiate(theme_type)
+	var props: Array[Dictionary] = temp_instance.get_property_list()
+	
+	if temp_instance is Object:
+		temp_instance.free()
+	
+	for prop: Dictionary in props:
+		var pattern_match: RegExMatch = theme_override_pattern.search(prop["name"])
 		
 		if !pattern_match:
 			continue
@@ -144,6 +166,16 @@ static func _get_theme_property_types(theme_type: String) -> Dictionary:
 		result[key] = value
 	
 	return result
+
+
+static func _has_theme_properties(_class_name: String) -> bool:
+	var properties: Array[Dictionary] = ClassDB.class_get_property_list(_class_name)
+	
+	for property: Dictionary in properties:
+		if property["name"] == "theme":
+			return true
+	
+	return false
 
 
 static func _parse_bool(text: String) -> bool:
@@ -230,7 +262,7 @@ static func _parse_gss_property(text: String, styles: Dictionary, theme_type: St
 	if pixel_size_pattern.search(prop_value):
 		prop_value = prop_value.trim_suffix("px")
 	
-	styles[theme_type].append({prop_key: prop_value})
+	styles[theme_type][prop_key] = prop_value
 
 
 static func _parse_gss_theme_type(text: String, styles: Dictionary) -> String:
@@ -246,7 +278,7 @@ static func _parse_gss_theme_type(text: String, styles: Dictionary) -> String:
 		theme_type += ":%s" % theme_type_style
 	
 	if !styles.has(theme_type):
-		styles[theme_type] = []
+		styles[theme_type] = {}
 	
 	return theme_type
 

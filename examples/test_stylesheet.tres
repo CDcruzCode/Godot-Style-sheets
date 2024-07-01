@@ -1,3 +1,32 @@
-[gd_resource type="Theme" format=3 uid="uid://daca54d8hcjsh"]
+[gd_resource type="Theme" load_steps=5 format=3 uid="uid://daca54d8hcjsh"]
+
+[ext_resource type="FontFile" uid="uid://crfeeuddpgih3" path="res://examples/assets/fonts/roboto_mono/static/RobotoMono-Regular.ttf" id="1_82n2b"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_e5n2x"]
+bg_color = Color(1, 0.133333, 0.8, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nsm2x"]
+bg_color = Color(0, 0, 0, 0.4)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+expand_margin_left = 20.0
+expand_margin_top = 20.0
+expand_margin_right = 20.0
+expand_margin_bottom = 20.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3u744"]
+bg_color = Color(1, 0, 0, 1)
 
 [resource]
+Button/colors/font_color = Color(1, 1, 1, 1)
+Button/font_sizes/font_size = 20
+Button/fonts/font = ExtResource("1_82n2b")
+Button/styles/disabled = SubResource("StyleBoxFlat_e5n2x")
+Button/styles/normal = SubResource("StyleBoxFlat_nsm2x")
+Button/styles/pressed = SubResource("StyleBoxFlat_3u744")
