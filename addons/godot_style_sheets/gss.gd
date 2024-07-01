@@ -16,6 +16,7 @@ const REGEX_COMMENT_PATTERN: String = r"(?m)(^[ \t]*#+(?![a-fA-F0-9]).*$|[ \t]*#
 const REGEX_PIXEL_SIZE_PATTERN: String = r"^\d+(\.\d+)?px$"
 const REGEX_PROPERTY_PATTERN: String = r"(\w+)\s*:\s*(?:\"?([^\";\n]+)\"?;?|([^;\n]+))"
 const REGEX_THEME_TYPE_PATTERN: String = r"(\w+)(?:\(([^)]*)\))?"
+const REGEX_THEME_OVERRIDE_PATTERN: String = r"theme_override_([a-z_]+)/([a-z_]+)"
 const REGEX_VECTOR2_PATTERN: String = r"Vector2?i?\s*\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)"
 
 static var color_pattern := RegEx.create_from_string(REGEX_COLOR_PATTERN)
@@ -23,21 +24,17 @@ static var comment_pattern := RegEx.create_from_string(REGEX_COMMENT_PATTERN)
 static var pixel_size_pattern := RegEx.create_from_string(REGEX_PIXEL_SIZE_PATTERN)
 static var property_pattern := RegEx.create_from_string(REGEX_PROPERTY_PATTERN)
 static var theme_type_pattern := RegEx.create_from_string(REGEX_THEME_TYPE_PATTERN)
+static var theme_override_pattern := RegEx.create_from_string(REGEX_THEME_OVERRIDE_PATTERN)
 static var vector2_pattern := RegEx.create_from_string(REGEX_VECTOR2_PATTERN)
 
-static var theme_type_styles: Array[String] = [
-	"disabled",
-	"disabled_mirrored",
-	"focus",
-	"hover",
-	"hover_mirrored",
-	"hover_pressed",
-	"hover_pressed_mirrored",
-	"normal",
-	"normal_mirrored",
-	"pressed",
-	"pressed_mirrored",
-]
+static var theme_property_types: Dictionary = {
+	"colors": DATA_TYPE_COLOR,
+	"constants": DATA_TYPE_CONSTANT,
+	"fonts": DATA_TYPE_FONT,
+	"font_sizes": DATA_TYPE_FONT_SIZE,
+	"icons": DATA_TYPE_ICON,
+	"styles": DATA_TYPE_STYLEBOX,
+}
 
 
 static func file_to_dict(path: String) -> Dictionary:
@@ -55,22 +52,32 @@ static func file_to_theme(path: String) -> Theme:
 	for key in gss.keys():
 		# The `key` will be something like "TextEdit", "Button:pressed", or "default".
 		var theme_type: String = key.get_slice(":", 0)
-		var theme_props: Dictionary = _get_theme_properties(theme, theme_type)
+		var theme_props: Dictionary = _get_theme_property_types(theme_type)
 		
 		# Theme type styles (e.g. "pressed", "hover") appears after the `:`, if present.
-		var theme_type_style: String = key.get_slice(":", 1) if ":" in key else "normal"
+		var style: String = key.get_slice(":", 1) if ":" in key else "normal"
+		
+		if not style in theme_props.keys() or DATA_TYPE_STYLEBOX != theme_props[style]:
+			push_warning("[GSS] Invalid theme type style: %s")
+			continue
 		
 		# Instantiate a new StyleBox that can have properties applied to it.
 		var stylebox = StyleBoxFlat.new()  # TODO: Support other types of StyleBox.
-		var stylebox_props: Dictionary = _get_stylebox_properties(StyleBoxFlat)
+		var stylebox_props: Dictionary = _get_stylebox_property_types(StyleBoxFlat)
 		
 		# Loop through each property key/value pair in the current GSS property array.
 		for props: Dictionary in gss[key]:
 			for prop: String in props.keys():
 				var value: String = props[prop]
-				_set_theme_property(theme, theme_props, stylebox, stylebox_props, prop, theme_type, value)
+				var data_type: int = theme_props.get(prop, DATA_TYPE_UNKNOWN)
+				
+				if DATA_TYPE_UNKNOWN == data_type:
+					_set_stylebox_property(stylebox, stylebox_props, prop, theme_type, value)
+				else:
+					_set_theme_property(theme, data_type, prop, theme_type, value)
+					
 		
-		theme.set_stylebox(theme_type_style, theme_type, stylebox)
+		theme.set_stylebox(style, theme_type, stylebox)
 	
 	return theme
 
@@ -94,14 +101,16 @@ static func _get_property_group(props: Dictionary, key: String) -> Array:
 	return props.keys().filter(func(k): return k != key and k.substr(0, key.length()) == key)
 
 
-## Returns a dictionary with property names for a given class as keys, and the data types of those
-## properties (e.g. TYPE_INT, TYPE_FLOAT) as values.
-static func _get_property_types(cls: Variant) -> Dictionary:
-	var temp_obj: Variant = cls.new()
-	var props: Array[Dictionary] = temp_obj.get_property_list()
+static func _get_class_property_types(cls: Variant, no_inheritance: bool = false) -> Dictionary:
 	var result: Dictionary = {}
 	
-	for prop: Dictionary in props:
+	if !ClassDB.class_exists(cls):
+		push_warning("[GSS] Class does not exist: %s" % cls)
+		return result
+	
+	var props: Array[Dictionary] = ClassDB.class_get_property_list(cls, no_inheritance)
+	
+	for prop in props:
 		var key: String = prop["name"]
 		var value: int = prop["type"]
 		result[key] = value
@@ -109,44 +118,32 @@ static func _get_property_types(cls: Variant) -> Dictionary:
 	return result
 
 
-static func _get_stylebox_properties(cls: Variant = StyleBoxFlat) -> Dictionary:
-	var parent_props = _get_property_types(Resource)  # Resource is the parent class of StyleBox.
-	var child_props = _get_property_types(cls)
-	var result: Dictionary = {}
+static func _get_stylebox_property_types(cls: Variant) -> Dictionary:
+	var no_inheritance: bool = true
+	var result: Dictionary = _get_class_property_types(cls, no_inheritance)
 	
-	for key in child_props.keys():
-		# If not a property of Resource, assume it is a property of StyleBox or a child class.
-		if !parent_props.has(key):
-			result[key] = child_props[key]
+	if "StyleBox" != cls:
+		result.merge(_get_class_property_types("StyleBox", no_inheritance))
 	
 	return result
 
 
-static func _get_theme_properties(theme: Theme, type: String) -> Dictionary:
-	## TODO: This method does not work as intended. Theme methods like `get_color_list()` return
-	## empty arrays, unless the theme has already been modified. They only return the properties that
-	## have values. We need a list of ALL theme properties and data types, for a given theme type.
-	var props: Dictionary = {}
+static func _get_theme_property_types(theme_type: String) -> Dictionary:
+	var props: Dictionary = _get_class_property_types(theme_type)
+	var result: Dictionary = {}
 	
-	for key in theme.get_color_list(type):
-		props[key] = DATA_TYPE_COLOR
+	for prop in props.keys():
+		var pattern_match: RegExMatch = theme_override_pattern.search(prop)
+		
+		if !pattern_match:
+			continue
+		
+		var key: String = pattern_match.get_string(2)
+		var value: int = theme_property_types.get(pattern_match.get_string(1), DATA_TYPE_UNKNOWN)
+		
+		result[key] = value
 	
-	for key in theme.get_constant_list(type):
-		props[key] = DATA_TYPE_CONSTANT
-	
-	for key in theme.get_font_list(type):
-		props[key] = DATA_TYPE_FONT
-	
-	for key in theme.get_font_size_list(type):
-		props[key] = DATA_TYPE_FONT_SIZE
-
-	for key in theme.get_icon_list(type):
-		props[key] = DATA_TYPE_ICON
-
-	for key in theme.get_stylebox_list(type):
-		props[key] = DATA_TYPE_STYLEBOX
-	
-	return props
+	return result
 
 
 static func _parse_bool(text: String) -> bool:
@@ -245,7 +242,7 @@ static func _parse_gss_theme_type(text: String, styles: Dictionary) -> String:
 	var theme_type: String = theme_type_match.strings[1]
 	var theme_type_style: String = theme_type_match.strings[2]
 	
-	if theme_type_style and theme_type_style in theme_type_styles:
+	if theme_type_style:
 		theme_type += ":%s" % theme_type_style
 	
 	if !styles.has(theme_type):
@@ -290,8 +287,8 @@ static func _parse_vector2(text: String) -> Vector2:
 	var vector2_match: RegExMatch = vector2_pattern.search(text)
 	
 	if !vector2_match:
-		push_error("[GSS] Unable to parse Vector2 value from String: %s" % text)
-		return Vector2.INF
+		push_warning("[GSS] Unable to parse Vector2 value from String: %s" % text)
+		return Vector2.ZERO
 	
 	var x: int = vector2_match.get_string(1) as int
 	var y: int = vector2_match.get_string(2) as int
@@ -299,17 +296,31 @@ static func _parse_vector2(text: String) -> Vector2:
 	return Vector2(x, y)
 
 
-static func _set_theme_property(
-	theme: Theme,
-	theme_props: Dictionary,
+static func _set_stylebox_property(
 	stylebox: StyleBox,
 	stylebox_props: Dictionary,
 	prop: String,
 	theme_type: String,
 	value: String,
 ) -> void:
-	var data_type: int = theme_props[prop] if theme_props.has(prop) else DATA_TYPE_UNKNOWN
-	
+	if DATA_TYPE_UNKNOWN == stylebox_props.get(prop, DATA_TYPE_UNKNOWN):
+		# If property does not appear in `stylebox_props`, it may be a group property
+		# (e.g. "border_width", "corner_radius") that has multiple properties for top,
+		# bottom, left, and right. If so, call this function recursively for each of
+		# the properties prefixed with the group property name.
+		for group_prop in _get_property_group(stylebox_props, prop):
+			_set_stylebox_property(stylebox, stylebox_props, group_prop, theme_type, value)
+	else:
+		stylebox.set(prop, _parse_stylebox_property(prop, value, stylebox_props))
+
+
+static func _set_theme_property(
+	theme: Theme,
+	data_type: int,
+	prop: String,
+	theme_type: String,
+	value: String,
+) -> void:
 	match data_type:
 		DATA_TYPE_COLOR:
 			theme.set_color(prop, theme_type, _parse_color(value))
@@ -325,16 +336,6 @@ static func _set_theme_property(
 		
 		DATA_TYPE_ICON:
 			theme.set_icon(prop, theme_type, _parse_icon(value))
-		
-		DATA_TYPE_STYLEBOX:
-			stylebox.set(prop, _parse_stylebox_property(prop, value, stylebox_props))
-		
-		DATA_TYPE_UNKNOWN:
-			# If prop is not found in theme_props, determine if it is a group property like
-			# "border_width" that has multiple properties for top, bottom, left, and right.
-			# If so, call this function recursively for each property in the group.
-			for group_prop in _get_property_group(theme_props, prop):
-				_set_theme_property(theme, theme_props, stylebox, stylebox_props, group_prop, theme_type, value)
 
 
 static func _strip_comments(text: String) -> String:
