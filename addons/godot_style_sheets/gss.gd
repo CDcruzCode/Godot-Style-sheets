@@ -47,14 +47,14 @@ static func file_to_theme(path: String) -> Theme:
 	for key in gss.keys():
 		var props: Dictionary = gss[key]
 		
-		# The `key` will be something like "TextEdit", "Button:pressed", or "default".
+		# The `key` will be something like "TextEdit" or "Button:pressed".
 		var theme_type: String = key.get_slice(":", 0)
 		var theme_props: Dictionary = _get_theme_property_types(theme_type)
 		
 		# Theme type styles (e.g. "pressed", "hover") appears after the `:`, if present.
 		var style: String = key.get_slice(":", 1) if ":" in key else "normal"
 		
-		if not style in theme_props.keys() or Theme.DATA_TYPE_STYLEBOX != theme_props[style]:
+		if !_is_valid_style(style, theme_props):
 			push_warning("[GSS] Invalid theme type style: %s")
 			continue
 		
@@ -171,6 +171,10 @@ static func _has_theme_properties(_class_name: String) -> bool:
 			return true
 	
 	return false
+
+
+static func _is_valid_style(style: String, theme_props: Dictionary) -> bool:
+	return style in theme_props.keys() and Theme.DATA_TYPE_STYLEBOX == theme_props[style]
 
 
 static func _parse_bool(text: String) -> bool:
