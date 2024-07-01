@@ -100,7 +100,7 @@ static func file_to_tres(path: String, output_path: String = "") -> String:
 ## the given `key` parameter, this function would return:
 ## ["border_width_bottom", "border_width_left", "border_width_right", "border_width_top"]
 static func _get_property_group(props: Dictionary, key: String) -> Array:
-	return props.keys().filter(func(k): return k != key and k.substr(0, key.length()) == key)
+	return props.keys().filter(func(k): return k != key and k.begins_with(key))
 
 
 static func _get_class_property_types(cls: Variant, no_inheritance: bool = false) -> Dictionary:
