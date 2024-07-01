@@ -1,15 +1,15 @@
-[gd_resource type="Theme" load_steps=5 format=3 uid="uid://daca54d8hcjsh"]
+[gd_resource type="Theme" load_steps=5 format=3]
 
-[ext_resource type="FontFile" uid="uid://crfeeuddpgih3" path="res://examples/assets/fonts/roboto_mono/static/RobotoMono-Regular.ttf" id="1_akhcd"]
+[ext_resource type="FontFile" path="res://examples/assets/fonts/roboto_mono/static/RobotoMono-Regular.ttf" id="1_6yemy"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kfe3f"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_i8rm5"]
 bg_color = Color(1, 0.133333, 0.8, 1)
 corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hlwmw"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3h8bt"]
 bg_color = Color(0, 0, 0, 0.4)
 corner_radius_top_left = 20
 corner_radius_top_right = 20
@@ -20,13 +20,13 @@ expand_margin_top = 20.0
 expand_margin_right = 20.0
 expand_margin_bottom = 20.0
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tmswj"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7lu21"]
 bg_color = Color(1, 0, 0, 1)
 
 [resource]
 Button/colors/font_color = Color(1, 1, 1, 1)
 Button/font_sizes/font_size = 20
-Button/fonts/font = ExtResource("1_akhcd")
-Button/styles/disabled = SubResource("StyleBoxFlat_kfe3f")
-Button/styles/normal = SubResource("StyleBoxFlat_hlwmw")
-Button/styles/pressed = SubResource("StyleBoxFlat_tmswj")
+Button/fonts/font = ExtResource("1_6yemy")
+Button/styles/disabled = SubResource("StyleBoxFlat_i8rm5")
+Button/styles/normal = SubResource("StyleBoxFlat_3h8bt")
+Button/styles/pressed = SubResource("StyleBoxFlat_7lu21")

@@ -1,12 +1,6 @@
 class_name GSS
 extends Node
 
-const DATA_TYPE_COLOR: int = Theme.DATA_TYPE_COLOR
-const DATA_TYPE_CONSTANT: int = Theme.DATA_TYPE_CONSTANT
-const DATA_TYPE_FONT: int = Theme.DATA_TYPE_FONT
-const DATA_TYPE_FONT_SIZE: int = Theme.DATA_TYPE_FONT_SIZE
-const DATA_TYPE_ICON: int = Theme.DATA_TYPE_ICON
-const DATA_TYPE_STYLEBOX: int = Theme.DATA_TYPE_STYLEBOX
 const DATA_TYPE_UNKNOWN: int = -1
 
 const DEFAULT_COLOR: Color = Color.WHITE
@@ -28,12 +22,12 @@ static var theme_override_pattern := RegEx.create_from_string(REGEX_THEME_OVERRI
 static var vector2_pattern := RegEx.create_from_string(REGEX_VECTOR2_PATTERN)
 
 static var theme_property_types: Dictionary = {
-	"colors": DATA_TYPE_COLOR,
-	"constants": DATA_TYPE_CONSTANT,
-	"fonts": DATA_TYPE_FONT,
-	"font_sizes": DATA_TYPE_FONT_SIZE,
-	"icons": DATA_TYPE_ICON,
-	"styles": DATA_TYPE_STYLEBOX,
+	"colors": Theme.DATA_TYPE_COLOR,
+	"constants": Theme.DATA_TYPE_CONSTANT,
+	"fonts": Theme.DATA_TYPE_FONT,
+	"font_sizes": Theme.DATA_TYPE_FONT_SIZE,
+	"icons": Theme.DATA_TYPE_ICON,
+	"styles": Theme.DATA_TYPE_STYLEBOX,
 }
 
 
@@ -59,7 +53,7 @@ static func file_to_theme(path: String) -> Theme:
 		# Theme type styles (e.g. "pressed", "hover") appears after the `:`, if present.
 		var style: String = key.get_slice(":", 1) if ":" in key else "normal"
 		
-		if not style in theme_props.keys() or DATA_TYPE_STYLEBOX != theme_props[style]:
+		if not style in theme_props.keys() or Theme.DATA_TYPE_STYLEBOX != theme_props[style]:
 			push_warning("[GSS] Invalid theme type style: %s")
 			continue
 		
@@ -354,19 +348,19 @@ static func _set_theme_property(
 	value: String,
 ) -> void:
 	match data_type:
-		DATA_TYPE_COLOR:
+		Theme.DATA_TYPE_COLOR:
 			theme.set_color(prop, theme_type, _parse_color(value))
 		
-		DATA_TYPE_CONSTANT:
+		Theme.DATA_TYPE_CONSTANT:
 			theme.set_constant(prop, theme_type, _parse_constant(value))
 		
-		DATA_TYPE_FONT:
+		Theme.DATA_TYPE_FONT:
 			theme.set_font(prop, theme_type, _parse_font(value))
 		
-		DATA_TYPE_FONT_SIZE:
+		Theme.DATA_TYPE_FONT_SIZE:
 			theme.set_font_size(prop, theme_type, _parse_font_size(value))
 		
-		DATA_TYPE_ICON:
+		Theme.DATA_TYPE_ICON:
 			theme.set_icon(prop, theme_type, _parse_icon(value))
 
 
